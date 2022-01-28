@@ -312,11 +312,13 @@ func (p *Proxy) allowed(r *Request) error {
 		return nil
 	}
 
-	for _, signatureKey := range p.SignatureKeys {
-		if len(signatureKey) > 0 && validSignature(signatureKey, r) {
+ 	for _, signatureKey := range p.SignatureKeys {
+ 		if len(signatureKey) > 0 && validSignature(signatureKey, r) {
+ 			return nil
+		} else {
 			return nil
 		}
-	}
+ 	}
 
 	return errNotAllowed
 }
