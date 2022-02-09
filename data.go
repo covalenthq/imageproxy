@@ -4,6 +4,7 @@
 package imageproxy
 
 import (
+	"os"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -306,6 +307,29 @@ func (r Request) String() string {
 	return u.String()
 }
 
+func (r *Request) useIpfsGatewayIfNecessary() error {
+	if r.URL.Scheme == "ipfs" {
+		cid := r.URL.Host
+		subpath := strings.TrimLeft(r.URL.Path, "/")
+		subpathSeparator := ""
+		if len(subpath) > 0 {
+			subpathSeparator = "/"
+		}
+		newURLStr := fmt.Sprintf("%s/ipfs/%s%s%s",
+			os.Getenv("IPFS_GATEWAY"),
+			cid,
+			subpathSeparator,
+			subpath,
+		)
+		newURL, err := url.Parse(newURLStr)
+		if err != nil {
+			return err
+		}
+		r.URL = newURL
+	}
+	return nil
+}
+
 // NewRequest parses an http.Request into an imageproxy Request.  Options and
 // the remote image URL are specified in the request path, formatted as:
 // /{options}/{remote_url}.  Options may be omitted, so a request path may
@@ -345,11 +369,11 @@ func NewRequest(r *http.Request, baseURL *url.URL) (*Request, error) {
 		req.URL = baseURL.ResolveReference(req.URL)
 	}
 
-	if !req.URL.IsAbs() {
+	if !req.URL.IsAbs() && req.URL.Scheme != "ipfs" {
 		return nil, URLError{"must provide absolute remote URL", r.URL}
 	}
 
-	if req.URL.Scheme != "http" && req.URL.Scheme != "https" {
+	if req.URL.Scheme != "http" && req.URL.Scheme != "https" && req.URL.Scheme != "ipfs" {
 		return nil, URLError{"remote URL must have http or https scheme", r.URL}
 	}
 
@@ -358,7 +382,7 @@ func NewRequest(r *http.Request, baseURL *url.URL) (*Request, error) {
 	return req, nil
 }
 
-var reCleanedURL = regexp.MustCompile(`^(https?):/+([^/])`)
+var reCleanedURL = regexp.MustCompile(`^(ipfs|https?):/+([^/])`)
 
 // parseURL parses s as a URL, handling URLs that have been munged by
 // path.Clean or a webserver that collapses multiple slashes.
