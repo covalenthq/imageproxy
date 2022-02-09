@@ -307,19 +307,12 @@ func (r Request) String() string {
 	return u.String()
 }
 
-func (r *Request) useIpfsGatewayIfNecessary() error {
-	if r.URL.Scheme == "ipfs" {
-		cid := r.URL.Host
-		subpath := strings.TrimLeft(r.URL.Path, "/")
-		subpathSeparator := ""
-		if len(subpath) > 0 {
-			subpathSeparator = "/"
-		}
-		newURLStr := fmt.Sprintf("%s/ipfs/%s%s%s",
+func (r *Request) replaceIpfsGatewayWithOurs() error {
+	matchHost := os.Getenv("IPFS_MATCH_HOSTNAME")
+	if len(matchHost) > 0 && r.URL.Host == matchHost {
+		newURLStr := fmt.Sprintf("%s%s",
 			os.Getenv("IPFS_GATEWAY"),
-			cid,
-			subpathSeparator,
-			subpath,
+			r.URL.Path,
 		)
 		newURL, err := url.Parse(newURLStr)
 		if err != nil {

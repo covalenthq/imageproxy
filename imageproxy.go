@@ -165,7 +165,7 @@ func (p *Proxy) serveImage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := req.useIpfsGatewayIfNecessary(); err != nil {
+	if err := req.replaceIpfsGatewayWithOurs(); err != nil {
 		msg := fmt.Sprintf("invalid request URL: %v", err)
 		p.log(msg)
 		http.Error(w, msg, http.StatusBadRequest)
